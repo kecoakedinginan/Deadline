@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Task & Reminder</title>
+    <style>
+        :root {
+            --bg-color: #F8F9FE;
+            --text-color: #1E293B;
+            --card-bg: #FFFFFF;
+            --purple: #6C5CE7;
+            --red: #FF6B6B;
+            --yellow: #FFC048;
+            --green: #00B894;
+        }
+        body.dark-mode {
+            --bg-color: #0F172A;
+            --text-color: #F1F5F9;
+            --card-bg: #1E293B;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; transition: 0.3s; }
+        
+        /* Header */
+        .header { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header-title h1 { font-size: 24px; font-weight: bold; }
+        .header-title p { font-size: 14px; color: gray; }
+        
+        /* Calendar Strip */
+        .calendar-strip { display: flex; gap: 10px; overflow-x: auto; padding: 0 20px 20px; }
+        .day-card { background: var(--card-bg); padding: 10px 15px; border-radius: 12px; text-align: center; min-width: 60px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; }
+        .day-card.active { background: var(--purple); color: white; }
+        
+        /* Task List */
+        .task-list { padding: 0 20px; display: grid; gap: 15px; }
+        .task-card { background: var(--card-bg); padding: 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .task-info h3 { font-size: 16px; margin-bottom: 5px; }
+        .task-info p { font-size: 13px; color: gray; }
+        .badge { padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; }
+        .badge.mendesak { background: var(--red); }
+        .badge.normal { background: var(--yellow); }
+        .badge.rendah { background: var(--green); }
+        
+        /* Sticky Bottom Dock */
+        .bottom-dock { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--card-bg); padding: 15px 30px; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 100; }
+        .dock-icon { font-size: 24px; cursor: pointer; color: gray; }
+        .mic-btn { background: var(--purple); color: white; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 28px; cursor: pointer; box-shadow: 0 4px 15px var(--purple); transform: translateY(-20px); display: flex; align-items: center; justify-content: center; }
+        .mic-btn.recording { animation: pulse 1s infinite; background: var(--red); box-shadow: 0 4px 15px var(--red); }
+        
+        /* Modals */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 200; }
+        .modal { background: var(--card-bg); padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
+        .modal h2 { margin-bottom: 15px; }
+        .btn { padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; margin: 5px; }
+        .btn-primary { background: var(--purple); color: white; }
+        .btn-retry { background: var(--yellow); color: #000; }
+        .btn-close { background: #e2e8f0; color: #333; }
+        
+        .timer { font-size: 24px; font-weight: bold; color: var(--red); margin-top: 10px; }
+        .transcript-box { margin-top: 15px; font-style: italic; color: gray; }
+        
+        @keyframes pulse {
+            0% { transform: translateY(-20px) scale(1); }
+            50% { transform: translateY(-20px) scale(1.1); }
+            100% { transform: translateY(-20px) scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-title">
+            <h1 id="greeting">Halo, Anna!</h1>
+            <p>Anda memiliki <span id="task-count">0</span> tugas mendatang.</p>
+        </div>
+        <div>
+            <span class="dock-icon" onclick="toggleTheme()">🌗</span>
+            <span class="dock-icon" onclick="openSettings()" style="margin-left:10px;">⚙️</span>
+        </div>
+    </div>
+
+    <div class="calendar-strip" id="calendar-strip">
+        <!-- Calendar Dates -->
+    </div>
+
+    <div class="task-list" id="task-list">
+        <!-- Tasks will be rendered here -->
+    </div>
+
+    <!-- Sticky Dock -->
+    <div class="bottom-dock">
+        <span class="dock-icon" onclick="alert('Kalender interaktif terbuka!')">📅</span>
+        <button class="mic-btn" id="mic-btn" onclick="startVoiceInput()">🎤</button>
+        <span class="dock-icon" onclick="openSettings()">📊</span>
+    </div>
+
+    <!-- Recording Modal -->
+    <div class="modal-overlay" id="recording-modal">
+        <div class="modal">
+            <h2>Mendengarkan...</h2>
+            <p>Format: Task - Tanggal Deadline - Urgensi</p>
+            <p style="font-size: 12px; color: gray;">Contoh: "Gojek poi design deadline tanggal 28 bulan ini urgensi mendesak"</p>
+            <div class="timer" id="countdown-timer">12</div>
+            <div class="transcript-box" id="transcript">Silakan bicara...</div>
+            <button class="btn btn-primary" onclick="stopVoiceInput()">Selesai & Proses</button>
+        </div>
+    </div>
+
+    <!-- Validation / Error Modal -->
+    <div class="modal-overlay" id="validation-modal">
+        <div class="modal">
+            <h2 id="validation-title">Data Kurang Lengkap!</h2>
+            <p id="validation-msg" style="margin-bottom: 15px;"></p>
+            <!-- Retry Button for Mic directly inside modal -->
+            <button class="btn btn-retry" onclick="startVoiceInput()">🎤 Coba Lagi via Suara</button>
+            <button class="btn btn-close" onclick="closeModal('validation-modal')">Tutup</button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+            <h2>Pengaturan & Laporan</h2>
+            <input type="text" id="username-input" placeholder="Ganti Nama" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc;">
+            <p style="text-align:left; font-size:14px; margin-bottom:10px;"><b>Laporan Mingguan:</b> 5 Selesai, 2 Tertunda</p>
+            <button class="btn btn-primary" onclick="saveSettings()">Simpan</button>
+            <button class="btn btn-close" onclick="closeModal('settings-modal')">Tutup</button>
+        </div>
+    </div>
+
+    <script>
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        let isRecording = false;
+        let recognition;
+        let countdownInterval;
+        let timeLeft = 12;
+
+        // Inisialisasi Web Speech API
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'id-ID';
+        } else {
+            alert('Browser Anda tidak mendukung input suara.');
+        }
+
+        // Dark Mode Toggle
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+        }
+
+        function renderCalendar() {
+            const strip = document.getElementById('calendar-strip');
+            strip.innerHTML = '';
+            let today = new Date();
+            for(let i=0; i<7; i++) {
+                let d = new Date(today);
+                d.setDate(today.getDate() + i);
+                let div = document.createElement('div');
+                div.className = 'day-card' + (i === 0 ? ' active' : '');
+                div.innerHTML = `<strong>${d.getDate()}</strong><br><small>${d.toLocaleString('id-ID', {weekday:'short'})}</small>`;
+                strip.appendChild(div);
+            }
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('task-list');
+            list.innerHTML = '';
+            document.getElementById('task-count').innerText = tasks.length;
+            
+            tasks.forEach((task, index) => {
+                let badgeClass = task.urgency === 'Sangat Mendesak' || task.urgency === 'Mendesak' ? 'mendesak' : (task.urgency === 'Rendah' ? 'rendah' : 'normal');
+                list.innerHTML += `
+                    <div class="task-card">
+                        <div class="task-info">
+                            <h3>${task.title}</h3>
+                            <p>📅 ${task.deadline}</p>
+                        </div>
+                        <span class="badge ${badgeClass}">${task.urgency}</span>
+                    </div>
+                `;
+            });
+        }
+
+        function startVoiceInput() {
+            closeModal('validation-modal');
+            document.getElementById('recording-modal').style.display = 'flex';
+            document.getElementById('transcript').innerText = "Mendengarkan...";
+            document.getElementById('mic-btn').classList.add('recording');
+            
+            timeLeft = 12;
+            document.getElementById('countdown-timer').innerText = timeLeft;
+            
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('countdown-timer').innerText = timeLeft;
+                if(timeLeft <= 0) {
+                    stopVoiceInput();
+                }
+            }, 1000);
+
+            recognition.start();
+            isRecording = true;
+            
+            recognition.onresult = (event) => {
+                let current = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    current += event.results[i][0].transcript;
+                }
+                document.getElementById('transcript').innerText = current;
+            };
+        }
+
+        function stopVoiceInput() {
+            if (isRecording) {
+                recognition.stop();
+                isRecording = false;
+                clearInterval(countdownInterval);
+                document.getElementById('recording-modal').style.display = 'none';
+                document.getElementById('mic-btn').classList.remove('recording');
+                
+                let finalTranscript = document.getElementById('transcript').innerText;
+                processTranscript(finalTranscript);
+            }
+        }
+
+        function processTranscript(text) {
+            text = text.toLowerCase();
+            
+            // 1. Ekstrak Task (sebelum kata "deadline" atau "tanggal")
+            let title = "";
+            let matchTask = text.match(/(.*?)(?:deadline|tanggal|pada)/);
+            if (matchTask && matchTask[1].trim().length > 0) {
+                title = matchTask[1].trim();
+            } else {
+                title = text; // Fallback jika tidak ada pemisah
+            }
+
+            // 2. Ekstrak Urgensi
+            let urgency = "";
+            if (text.includes("sangat mendesak")) urgency = "Sangat Mendesak";
+            else if (text.includes("mendesak")) urgency = "Mendesak";
+            else if (text.includes("rendah")) urgency = "Rendah";
+            else if (text.includes("normal")) urgency = "Normal";
+
+            // 3. Ekstrak Tanggal dengan Parser Akurat Bahasa Indonesia
+            let deadlineStr = "";
+            const months = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
+            let foundMonthIndex = -1;
+            let foundDate = -1;
+
+            // Cari bulan eksplisit
+            for (let i = 0; i < months.length; i++) {
+                if (text.includes(months[i])) {
+                    foundMonthIndex = i;
+                    break;
+                }
+            }
+
+            // Cari angka tanggal (contoh: "tanggal 28" atau "2 agustus")
+            let matchDate = text.match(/tanggal\s+(\d+)|(\d+)\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|bulan)/);
+            if (matchDate) {
+                foundDate = parseInt(matchDate[1] || matchDate[2]);
+            }
+
+            let today = new Date();
+            let targetDate = new Date();
+
+            if (foundDate !== -1 && foundMonthIndex !== -1) {
+                // Bulan dan Tanggal spesifik terdeteksi
+                targetDate.setMonth(foundMonthIndex);
+                targetDate.setDate(foundDate);
+                // Jika sudah lewat di tahun ini, lompat ke tahun depan
+                if (targetDate < today && targetDate.getMonth() < today.getMonth()) {
+                    targetDate.setFullYear(today.getFullYear() + 1);
+                }
+                deadlineStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+            } 
+            else if (foundDate !== -1 && text.includes("bulan ini")) {
+                deadlineStr = `${foundDate} ${months[today.getMonth()]} ${today.getFullYear()}`;
+            }
+            else if (text.includes("besok")) {
+                targetDate.setDate(today.getDate() + 1);
+                deadlineStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+            }
+            else if (text.includes("lusa")) {
+                targetDate.setDate(today.getDate() + 2);
+                deadlineStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+            }
+
+            // VALIDASI 3 VARIABEL
+            let missing = [];
+            if (!title || title === text) missing.push("Task/Tugas");
+            if (!deadlineStr) missing.push("Tanggal Deadline");
+            if (!urgency) missing.push("Urgensi (Mendesak/Normal/Rendah)");
+
+            if (missing.length > 0) {
+                document.getElementById('validation-msg').innerHTML = `Sistem tidak mendeteksi: <b>${missing.join(', ')}</b>.<br><br><i>Terdengar: "${text}"</i>`;
+                document.getElementById('validation-modal').style.display = 'flex';
+            } else {
+                // Simpan jika semua lengkap
+                tasks.push({ title: title, deadline: deadlineStr, urgency: urgency });
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                renderTasks();
+                alert('Tugas Berhasil Disimpan!');
+            }
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function openSettings() {
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+
+        function saveSettings() {
+            let name = document.getElementById('username-input').value;
+            if(name) {
+                document.getElementById('greeting').innerText = `Halo, ${name}!`;
+            }
+            closeModal('settings-modal');
+        }
+
+        // Init
+        renderCalendar();
+        renderTasks();
+    </script>
+</body>
+</html>
