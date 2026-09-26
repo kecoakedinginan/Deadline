@@ -1,333 +1,1317 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voice Task & Reminder</title>
-    <style>
-        :root {
-            --bg-color: #F8F9FE;
-            --text-color: #1E293B;
-            --card-bg: #FFFFFF;
-            --purple: #6C5CE7;
-            --red: #FF6B6B;
-            --yellow: #FFC048;
-            --green: #00B894;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VoiceMind Pro - Pengingat & Catatan Suara Smart</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            appBgLight: '#F4F5FB',
+            appCardLight: '#FFFFFF',
+            appTextLight: '#1E293B',
+            appSubtextLight: '#64748B',
+
+            appBgDark: '#0F172A',
+            appCardDark: '#1E293B',
+            appTextDark: '#F8FAFC',
+            appSubtextDark: '#94A3B8',
+
+            appPurple: 'var(--brand-accent, #6366F1)',
+            appPurpleDark: 'var(--brand-accent-dark, #4F46E5)',
+            appCoral: '#FF5252',
+            appYellow: '#FFB300',
+            appGreen: '#10B981',
+            appBlue: '#3B82F6'
+          },
+          borderRadius: {
+            '3xl': '24px',
+            '4xl': '32px'
+          },
+          boxShadow: {
+            'soft': '0 10px 30px rgba(99, 102, 241, 0.15)',
+            'card': '0 8px 24px rgba(0, 0, 0, 0.04)',
+            'card-dark': '0 8px 24px rgba(0, 0, 0, 0.25)',
+            'float': '0 15px 35px rgba(79, 70, 229, 0.35)'
+          }
         }
-        body.dark-mode {
-            --bg-color: #0F172A;
-            --text-color: #F1F5F9;
-            --card-bg: #1E293B;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-color); padding-bottom: 80px; transition: 0.3s; }
-        
-        /* Header */
-        .header { padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .header-title h1 { font-size: 24px; font-weight: bold; }
-        .header-title p { font-size: 14px; color: gray; }
-        
-        /* Calendar Strip */
-        .calendar-strip { display: flex; gap: 10px; overflow-x: auto; padding: 0 20px 20px; }
-        .day-card { background: var(--card-bg); padding: 10px 15px; border-radius: 12px; text-align: center; min-width: 60px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); cursor: pointer; }
-        .day-card.active { background: var(--purple); color: white; }
-        
-        /* Task List */
-        .task-list { padding: 0 20px; display: grid; gap: 15px; }
-        .task-card { background: var(--card-bg); padding: 15px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
-        .task-info h3 { font-size: 16px; margin-bottom: 5px; }
-        .task-info p { font-size: 13px; color: gray; }
-        .badge { padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: white; }
-        .badge.mendesak { background: var(--red); }
-        .badge.normal { background: var(--yellow); }
-        .badge.rendah { background: var(--green); }
-        
-        /* Sticky Bottom Dock */
-        .bottom-dock { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--card-bg); padding: 15px 30px; display: flex; justify-content: space-around; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); border-top-left-radius: 20px; border-top-right-radius: 20px; z-index: 100; }
-        .dock-icon { font-size: 24px; cursor: pointer; color: gray; }
-        .mic-btn { background: var(--purple); color: white; border: none; width: 60px; height: 60px; border-radius: 50%; font-size: 28px; cursor: pointer; box-shadow: 0 4px 15px var(--purple); transform: translateY(-20px); display: flex; align-items: center; justify-content: center; }
-        .mic-btn.recording { animation: pulse 1s infinite; background: var(--red); box-shadow: 0 4px 15px var(--red); }
-        
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 200; }
-        .modal { background: var(--card-bg); padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; text-align: center; }
-        .modal h2 { margin-bottom: 15px; }
-        .btn { padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; margin: 5px; }
-        .btn-primary { background: var(--purple); color: white; }
-        .btn-retry { background: var(--yellow); color: #000; }
-        .btn-close { background: #e2e8f0; color: #333; }
-        
-        .timer { font-size: 24px; font-weight: bold; color: var(--red); margin-top: 10px; }
-        .transcript-box { margin-top: 15px; font-style: italic; color: gray; }
-        
-        @keyframes pulse {
-            0% { transform: translateY(-20px) scale(1); }
-            50% { transform: translateY(-20px) scale(1.1); }
-            100% { transform: translateY(-20px) scale(1); }
-        }
-    </style>
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons & Google Fonts -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand-accent: #6366F1;
+      --brand-accent-dark: #4F46E5;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    @keyframes pulseRing {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.15); opacity: 0.2; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-pulse-ring {
+      animation: pulseRing 1.8s infinite ease-in-out;
+    }
+
+    @keyframes soundWave {
+      0%, 100% { height: 8px; }
+      50% { height: 38px; }
+    }
+    .bar-1 { animation: soundWave 1.1s infinite ease-in-out; }
+    .bar-2 { animation: soundWave 0.8s infinite ease-in-out 0.2s; }
+    .bar-3 { animation: soundWave 1.3s infinite ease-in-out 0.4s; }
+    .bar-4 { animation: soundWave 0.9s infinite ease-in-out 0.1s; }
+    .bar-5 { animation: soundWave 1.2s infinite ease-in-out 0.3s; }
+  </style>
 </head>
-<body>
+<body class="min-h-screen flex justify-center items-center p-0 sm:p-4 bg-slate-200 dark:bg-slate-950">
 
-    <div class="header">
-        <div class="header-title">
-            <h1 id="greeting">Halo, Anna!</h1>
-            <p>Anda memiliki <span id="task-count">0</span> tugas mendatang.</p>
+  <!-- App Wrapper Container -->
+  <div class="w-full max-w-md h-screen sm:h-[915px] bg-appBgLight dark:bg-appBgDark text-appTextLight dark:text-appTextDark sm:rounded-[40px] shadow-2xl flex flex-col justify-between overflow-hidden relative border-0 sm:border-8 border-slate-800 dark:border-slate-800 transition-colors">
+
+    <!-- Top Status Bar -->
+    <div class="px-7 pt-4 pb-1 flex justify-between items-center text-xs font-semibold z-20 shrink-0 text-slate-700 dark:text-slate-300">
+      <span id="currentTimeDisplay">09:41</span>
+      <div class="flex items-center space-x-2">
+        <!-- Settings Quick Icon -->
+        <button id="topSettingsBtn" class="p-1 rounded-full hover:text-indigo-500 transition-colors" title="Pengaturan & Laporan">
+          <i class="fa-solid fa-gear text-xs"></i>
+        </button>
+        <!-- Theme Toggle Button -->
+        <button id="themeToggleBtn" class="p-1 rounded-full hover:text-indigo-500 transition-colors" title="Toggle Theme">
+          <i class="fa-solid fa-moon text-xs dark:hidden"></i>
+          <i class="fa-solid fa-sun text-xs hidden dark:inline text-amber-400"></i>
+        </button>
+        <div class="flex items-center space-x-1">
+          <i class="fa-solid fa-signal text-[10px]"></i>
+          <i class="fa-solid fa-wifi text-[10px]"></i>
+          <i class="fa-solid fa-battery-full text-xs"></i>
         </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Main Content -->
+    <div class="flex-1 overflow-y-auto no-scrollbar px-6 pt-2 pb-32 space-y-5">
+
+      <!-- Header Section -->
+      <div class="flex items-center justify-between pt-1">
         <div>
-            <span class="dock-icon" onclick="toggleTheme()">🌗</span>
-            <span class="dock-icon" onclick="openSettings()" style="margin-left:10px;">⚙️</span>
+          <p class="text-xs font-semibold text-slate-400 dark:text-slate-400" id="greetingText">Selamat pagi,</p>
+          <h1 class="text-2xl font-extrabold tracking-tight text-slate-800 dark:text-white" id="userNameText">Anna Lane! 👋</h1>
         </div>
-    </div>
-
-    <div class="calendar-strip" id="calendar-strip">
-        <!-- Calendar Dates -->
-    </div>
-
-    <div class="task-list" id="task-list">
-        <!-- Tasks will be rendered here -->
-    </div>
-
-    <!-- Sticky Dock -->
-    <div class="bottom-dock">
-        <span class="dock-icon" onclick="alert('Kalender interaktif terbuka!')">📅</span>
-        <button class="mic-btn" id="mic-btn" onclick="startVoiceInput()">🎤</button>
-        <span class="dock-icon" onclick="openSettings()">📊</span>
-    </div>
-
-    <!-- Recording Modal -->
-    <div class="modal-overlay" id="recording-modal">
-        <div class="modal">
-            <h2>Mendengarkan...</h2>
-            <p>Format: Task - Tanggal Deadline - Urgensi</p>
-            <p style="font-size: 12px; color: gray;">Contoh: "Gojek poi design deadline tanggal 28 bulan ini urgensi mendesak"</p>
-            <div class="timer" id="countdown-timer">12</div>
-            <div class="transcript-box" id="transcript">Silakan bicara...</div>
-            <button class="btn btn-primary" onclick="stopVoiceInput()">Selesai & Proses</button>
+        <div class="flex items-center space-x-2">
+          <!-- Add Task Button -->
+          <button id="topAddTaskBtn" class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-soft flex items-center justify-center transition-all">
+            <i class="fa-solid fa-plus text-sm"></i>
+          </button>
+          <!-- Search Toggle Button -->
+          <button id="searchToggleBtn" class="w-10 h-10 rounded-full bg-white dark:bg-appCardDark shadow-card dark:shadow-card-dark flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-indigo-500 transition-all">
+            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+          </button>
         </div>
-    </div>
+      </div>
 
-    <!-- Validation / Error Modal -->
-    <div class="modal-overlay" id="validation-modal">
-        <div class="modal">
-            <h2 id="validation-title">Data Kurang Lengkap!</h2>
-            <p id="validation-msg" style="margin-bottom: 15px;"></p>
-            <!-- Retry Button for Mic directly inside modal -->
-            <button class="btn btn-retry" onclick="startVoiceInput()">🎤 Coba Lagi via Suara</button>
-            <button class="btn btn-close" onclick="closeModal('validation-modal')">Tutup</button>
+      <!-- Voice Speech Guide Banner -->
+      <div class="bg-gradient-to-r from-indigo-500/10 via-indigo-500/5 to-transparent border border-indigo-500/20 dark:border-indigo-500/30 rounded-2xl p-3.5 flex items-start space-x-3">
+        <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-soft">
+          <i class="fa-solid fa-headset text-xs"></i>
         </div>
-    </div>
-
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="settings-modal">
-        <div class="modal">
-            <h2>Pengaturan & Laporan</h2>
-            <input type="text" id="username-input" placeholder="Ganti Nama" style="width:100%; padding:10px; margin-bottom:15px; border-radius:8px; border:1px solid #ccc;">
-            <p style="text-align:left; font-size:14px; margin-bottom:10px;"><b>Laporan Mingguan:</b> 5 Selesai, 2 Tertunda</p>
-            <button class="btn btn-primary" onclick="saveSettings()">Simpan</button>
-            <button class="btn btn-close" onclick="closeModal('settings-modal')">Tutup</button>
+        <div class="text-xs space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-indigo-600 dark:text-indigo-300 uppercase text-[10px] tracking-wider">Format Perintah Suara</span>
+            <span class="text-[9px] bg-indigo-500/10 dark:bg-indigo-500/30 text-indigo-600 dark:text-indigo-200 px-2 py-0.5 rounded-full font-bold">1 Input / Sesi</span>
+          </div>
+          <p class="text-slate-600 dark:text-slate-300 font-medium">Ucapkan: <span class="font-bold text-slate-800 dark:text-white">[Tugas] + [Deadline] + [Urgensi]</span></p>
+          <p class="text-[11px] italic text-slate-400 dark:text-slate-400">Contoh: "Gojek poi design deadline tanggal 28 agustus urgensi mendesak"</p>
         </div>
+      </div>
+
+      <!-- Expandable Search Bar -->
+      <div id="searchContainer" class="hidden transition-all duration-300">
+        <div class="relative">
+          <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-400"></i>
+          <input type="text" id="searchInput" placeholder="Cari tugas atau deadline..." class="w-full pl-11 pr-10 py-3 bg-white dark:bg-appCardDark rounded-2xl text-xs font-medium border-0 shadow-card dark:shadow-card-dark focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white">
+          <button id="clearSearchBtn" class="hidden absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Category Dashboard Cards -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-slate-800 dark:text-slate-200">Ringkasan Urgensi</h2>
+          <span class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 cursor-pointer hover:underline" id="resetCategoryFilter">Tampilkan Semua</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3" id="categoryGrid">
+          <!-- Sangat Mendesak Card -->
+          <div data-urgency="Sangat Mendesak" class="category-card relative bg-gradient-to-br from-red-500 to-rose-600 text-white p-3.5 rounded-3xl shadow-soft cursor-pointer hover:scale-[1.02] transition-transform">
+            <div class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/25 backdrop-blur-md flex items-center justify-center">
+              <i class="fa-solid fa-triangle-exclamation text-xs text-white"></i>
+            </div>
+            <div class="mt-4">
+              <span class="text-[9px] font-extrabold uppercase tracking-wider text-red-100">Urgensi Tinggi</span>
+              <h3 class="text-base font-extrabold mt-0.5">Sangat Mendesak</h3>
+              <p class="text-[11px] font-medium text-red-100 mt-1" id="countSangatMendesak">0 Tugas</p>
+            </div>
+          </div>
+
+          <!-- Mendesak Card -->
+          <div data-urgency="Mendesak" class="category-card relative bg-gradient-to-br from-amber-500 to-orange-500 text-white p-3.5 rounded-3xl shadow-card dark:shadow-card-dark cursor-pointer hover:scale-[1.02] transition-transform">
+            <div class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/25 backdrop-blur-md flex items-center justify-center">
+              <i class="fa-solid fa-fire text-xs text-white"></i>
+            </div>
+            <div class="mt-4">
+              <span class="text-[9px] font-extrabold uppercase tracking-wider text-amber-100">Prioritas</span>
+              <h3 class="text-base font-extrabold mt-0.5">Mendesak</h3>
+              <p class="text-[11px] font-medium text-amber-100 mt-1" id="countMendesak">0 Tugas</p>
+            </div>
+          </div>
+
+          <!-- Normal Card -->
+          <div data-urgency="Normal" class="category-card relative bg-gradient-to-br from-indigo-500 to-indigo-700 text-white p-3.5 rounded-3xl shadow-card dark:shadow-card-dark cursor-pointer hover:scale-[1.02] transition-transform">
+            <div class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/25 backdrop-blur-md flex items-center justify-center">
+              <i class="fa-solid fa-clock text-xs text-white"></i>
+            </div>
+            <div class="mt-4">
+              <span class="text-[9px] font-extrabold uppercase tracking-wider text-indigo-100">Standar</span>
+              <h3 class="text-base font-extrabold mt-0.5">Normal</h3>
+              <p class="text-[11px] font-medium text-indigo-100 mt-1" id="countNormal">0 Tugas</p>
+            </div>
+          </div>
+
+          <!-- Rendah Card -->
+          <div data-urgency="Rendah" class="category-card relative bg-gradient-to-br from-emerald-500 to-teal-600 text-white p-3.5 rounded-3xl shadow-card dark:shadow-card-dark cursor-pointer hover:scale-[1.02] transition-transform">
+            <div class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/25 backdrop-blur-md flex items-center justify-center">
+              <i class="fa-solid fa-leaf text-xs text-white"></i>
+            </div>
+            <div class="mt-4">
+              <span class="text-[9px] font-extrabold uppercase tracking-wider text-emerald-100">Santai</span>
+              <h3 class="text-base font-extrabold mt-0.5">Rendah</h3>
+              <p class="text-[11px] font-medium text-emerald-100 mt-1" id="countRendah">0 Tugas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Strip Section -->
+      <div class="bg-white dark:bg-appCardDark rounded-3xl p-4 shadow-card dark:shadow-card-dark transition-colors">
+        <div class="flex items-center justify-between mb-3 px-1">
+          <div class="flex items-center space-x-2">
+            <h3 class="text-xs font-bold text-slate-800 dark:text-slate-200" id="calendarMonthTitle">September 2026</h3>
+            <button id="openFullCalendarBtn" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/50 px-2 py-0.5 rounded-full hover:bg-indigo-100 transition-colors">
+              <i class="fa-solid fa-calendar-days mr-1"></i>Buka Kalender Full
+            </button>
+          </div>
+          <div class="flex items-center space-x-1 text-slate-400">
+            <button id="prevWeekBtn" class="p-1 hover:text-indigo-500 dark:hover:text-indigo-400"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+            <button id="nextWeekBtn" class="p-1 hover:text-indigo-500 dark:hover:text-indigo-400"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-7 gap-1 text-center" id="calendarDaysStrip">
+          <!-- Dynamically populated 7 days -->
+        </div>
+      </div>
+
+      <!-- Reminders List Section -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-bold text-slate-800 dark:text-slate-200" id="listSectionTitle">Daftar Pengingat</h2>
+          <span class="text-xs font-semibold text-slate-400" id="totalTaskCount">0 Tugas</span>
+        </div>
+
+        <!-- Task Items Container -->
+        <div class="space-y-2.5" id="taskListContainer">
+          <!-- Dynamically Injected Reminders -->
+        </div>
+
+        <!-- Empty State Container -->
+        <div id="emptyTaskState" class="hidden text-center py-8 px-4 bg-white dark:bg-appCardDark rounded-3xl shadow-card dark:shadow-card-dark border border-dashed border-slate-200 dark:border-slate-700">
+          <div class="w-12 h-12 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto mb-2.5">
+            <i class="fa-solid fa-microphone-lines text-lg"></i>
+          </div>
+          <h4 class="text-xs font-bold text-slate-700 dark:text-slate-200">Belum ada pengingat</h4>
+          <p class="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">Tekan tombol mikrofon di bawah dan sebutkan tugas, tanggal deadline, dan tingkat urgensi!</p>
+        </div>
+      </div>
+
     </div>
 
-    <script>
-        let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-        let isRecording = false;
-        let recognition;
-        let countdownInterval;
-        let timeLeft = 12;
+    <!-- Floating Bottom Navigation Bar (STICKY & FROZEN AT BOTTOM) -->
+    <div class="sticky bottom-0 left-0 right-0 z-40 p-5 bg-gradient-to-t from-appBgLight via-appBgLight/80 to-transparent dark:from-appBgDark dark:via-appBgDark/80 backdrop-blur-sm">
+      <div class="bg-indigo-600 dark:bg-slate-800 text-white rounded-full py-3 px-6 shadow-float flex items-center justify-between relative border border-white/10">
+        
+        <!-- Nav Item 1: Home -->
+        <button id="navHomeBtn" class="nav-btn active flex flex-col items-center justify-center text-white">
+          <i class="fa-solid fa-house text-base"></i>
+          <span class="w-1 h-1 bg-white rounded-full mt-0.5"></span>
+        </button>
 
-        // Inisialisasi Web Speech API
-        if ('webkitSpeechRecognition' in window) {
-            recognition = new webkitSpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = 'id-ID';
-        } else {
-            alert('Browser Anda tidak mendukung input suara.');
-        }
+        <!-- Nav Item 2: Calendar Modal Trigger -->
+        <button id="navCalendarBtn" class="nav-btn flex flex-col items-center justify-center text-indigo-200 dark:text-slate-400 hover:text-white transition-colors">
+          <i class="fa-solid fa-calendar-days text-base"></i>
+        </button>
 
-        // Dark Mode Toggle
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-        }
+        <!-- Center Prominent Mic FAB -->
+        <div class="relative -top-6">
+          <button id="mainVoiceFab" class="w-14 h-14 rounded-full bg-gradient-to-tr from-appCoral via-red-500 to-appYellow text-white shadow-lg shadow-red-500/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all ring-4 ring-appBgLight dark:ring-appBgDark">
+            <i class="fa-solid fa-microphone text-xl"></i>
+          </button>
+        </div>
 
-        function renderCalendar() {
-            const strip = document.getElementById('calendar-strip');
-            strip.innerHTML = '';
-            let today = new Date();
-            for(let i=0; i<7; i++) {
-                let d = new Date(today);
-                d.setDate(today.getDate() + i);
-                let div = document.createElement('div');
-                div.className = 'day-card' + (i === 0 ? ' active' : '');
-                div.innerHTML = `<strong>${d.getDate()}</strong><br><small>${d.toLocaleString('id-ID', {weekday:'short'})}</small>`;
-                strip.appendChild(div);
-            }
-        }
+        <!-- Nav Item 3: Quick Add Task -->
+        <button id="navTasksBtn" class="nav-btn flex flex-col items-center justify-center text-indigo-200 dark:text-slate-400 hover:text-white transition-colors">
+          <i class="fa-solid fa-plus text-base"></i>
+        </button>
 
-        function renderTasks() {
-            const list = document.getElementById('task-list');
-            list.innerHTML = '';
-            document.getElementById('task-count').innerText = tasks.length;
+        <!-- Nav Item 4: Settings & Reports Trigger -->
+        <button id="navSettingsBtn" class="nav-btn flex flex-col items-center justify-center text-indigo-200 dark:text-slate-400 hover:text-white transition-colors">
+          <i class="fa-solid fa-sliders text-base"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Full Interactive Calendar Overlay / Modal -->
+    <div id="fullCalendarModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md hidden flex items-center justify-center p-5">
+      <div class="bg-white dark:bg-slate-900 rounded-4xl max-w-xs w-full p-6 shadow-2xl relative space-y-4 border border-slate-100 dark:border-slate-800">
+        
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center space-x-2">
+            <div class="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-950 text-indigo-600 flex items-center justify-center">
+              <i class="fa-solid fa-calendar-days text-xs"></i>
+            </div>
+            <h3 class="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">Jadwal & Kalender</h3>
+          </div>
+          <button id="closeFullCalendarBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i class="fa-solid fa-xmark text-base"></i>
+          </button>
+        </div>
+
+        <!-- Calendar Month Navigator -->
+        <div class="flex items-center justify-between px-1">
+          <button id="fullCalPrevMonth" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+          </button>
+          <span id="fullCalMonthYear" class="text-xs font-extrabold text-slate-800 dark:text-white">September 2026</span>
+          <button id="fullCalNextMonth" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Calendar Grid Header -->
+        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400">
+          <span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span>
+        </div>
+
+        <!-- Calendar Grid Days -->
+        <div id="fullCalGrid" class="grid grid-cols-7 gap-1 text-center">
+          <!-- Dynamically populated dates -->
+        </div>
+
+        <!-- Date Selected Summary -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+          <span id="fullCalSelectedText" class="text-[11px] font-bold text-slate-600 dark:text-slate-300">Menampilkan semua tugas</span>
+          <button id="clearCalFilterBtn" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Reset Filter</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings & Productivity Reports Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md hidden flex items-center justify-center p-5">
+      <div class="bg-white dark:bg-slate-900 rounded-4xl max-w-xs w-full p-6 shadow-2xl relative space-y-4 border border-slate-100 dark:border-slate-800 max-h-[85vh] overflow-y-auto no-scrollbar">
+        
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h3 class="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">Pengaturan & Laporan</h3>
+          <button id="closeSettingsModalBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i class="fa-solid fa-xmark text-base"></i>
+          </button>
+        </div>
+
+        <!-- Tabs Switcher -->
+        <div class="grid grid-cols-2 gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">
+          <button id="tabSettingsBtn" class="py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm">Pengaturan</button>
+          <button id="tabReportsBtn" class="py-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white">Laporan</button>
+        </div>
+
+        <!-- Settings Section Container -->
+        <div id="settingsSection" class="space-y-4">
+          <!-- User Profile Editor -->
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-1">Nama Pengguna</label>
+            <div class="flex space-x-2">
+              <input type="text" id="editUserNameInput" value="Anna Lane" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white">
+              <button id="saveUserNameBtn" class="px-3 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-soft">Simpan</button>
+            </div>
+          </div>
+
+          <!-- Accent Theme Color Presets -->
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 mb-2">Warna Aksen Aplikasi</label>
+            <div class="flex items-center justify-between">
+              <button data-color="#6366F1" data-dark="#4F46E5" class="color-preset-btn w-8 h-8 rounded-full bg-indigo-500 ring-2 ring-offset-2 ring-indigo-500"></button>
+              <button data-color="#10B981" data-dark="#059669" class="color-preset-btn w-8 h-8 rounded-full bg-emerald-500 hover:opacity-80"></button>
+              <button data-color="#3B82F6" data-dark="#2563EB" class="color-preset-btn w-8 h-8 rounded-full bg-blue-500 hover:opacity-80"></button>
+              <button data-color="#F59E0B" data-dark="#D97706" class="color-preset-btn w-8 h-8 rounded-full bg-amber-500 hover:opacity-80"></button>
+              <button data-color="#EC4899" data-dark="#DB2777" class="color-preset-btn w-8 h-8 rounded-full bg-pink-500 hover:opacity-80"></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reports Section Container -->
+        <div id="reportsSection" class="hidden space-y-4">
+          
+          <!-- Laporan Mingguan -->
+          <div class="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-700/60 space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-extrabold text-slate-800 dark:text-white">Laporan Mingguan</span>
+              <span id="weeklyCompletionRate" class="text-xs font-bold text-emerald-600 dark:text-emerald-400">0% Selesai</span>
+            </div>
+            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+              <div id="weeklyProgressBar" class="bg-emerald-500 h-full w-0 transition-all duration-500"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-slate-400 font-medium">
+              <span id="weeklyTotalText">Total: 0 Tugas</span>
+              <span id="weeklyDoneText">Selesai: 0</span>
+            </div>
+          </div>
+
+          <!-- Laporan Bulanan -->
+          <div class="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-100 dark:border-slate-700/60 space-y-2">
+            <span class="text-xs font-extrabold text-slate-800 dark:text-white block">Laporan Bulanan (Urgensi)</span>
             
-            tasks.forEach((task, index) => {
-                let badgeClass = task.urgency === 'Sangat Mendesak' || task.urgency === 'Mendesak' ? 'mendesak' : (task.urgency === 'Rendah' ? 'rendah' : 'normal');
-                list.innerHTML += `
-                    <div class="task-card">
-                        <div class="task-info">
-                            <h3>${task.title}</h3>
-                            <p>📅 ${task.deadline}</p>
-                        </div>
-                        <span class="badge ${badgeClass}">${task.urgency}</span>
-                    </div>
-                `;
-            });
+            <div class="space-y-1.5 text-[11px]">
+              <div class="flex justify-between items-center">
+                <span class="text-red-500 font-bold">🚨 Sangat Mendesak</span>
+                <span id="repSangatMendesak" class="font-bold text-slate-700 dark:text-slate-300">0</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-amber-500 font-bold">🔥 Mendesak</span>
+                <span id="repMendesak" class="font-bold text-slate-700 dark:text-slate-300">0</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-indigo-500 font-bold">⚡ Normal</span>
+                <span id="repNormal" class="font-bold text-slate-700 dark:text-slate-300">0</span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-emerald-500 font-bold">🌱 Rendah</span>
+                <span id="repRendah" class="font-bold text-slate-700 dark:text-slate-300">0</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Voice Recording Live Modal Overlay -->
+    <div id="voiceModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md hidden flex items-center justify-center p-6 transition-all duration-300">
+      <div class="bg-white dark:bg-slate-900 rounded-4xl max-w-xs w-full p-6 text-center shadow-2xl relative space-y-4 border border-slate-100 dark:border-slate-800 transform scale-90 opacity-0 transition-all duration-300" id="voiceModalCard">
+        
+        <button id="closeVoiceModalBtn" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+
+        <div>
+          <span class="text-[10px] font-extrabold uppercase tracking-wider text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-300 px-3 py-1 rounded-full">Voice Assistant Pro</span>
+          <h3 class="text-sm font-extrabold text-slate-800 dark:text-white mt-2">Dengarkan Perintah Suara</h3>
+          
+          <div class="mt-2 p-2.5 bg-slate-50 dark:bg-slate-800/80 rounded-2xl text-[11px] text-slate-500 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
+            <p class="font-semibold text-indigo-600 dark:text-indigo-300 mb-0.5">Format Wajib: (Tugas - Deadline - Urgensi)</p>
+            <p class="italic text-[10px]">"Gojek poi design deadline tanggal 28 agustus urgensi mendesak"</p>
+          </div>
+        </div>
+
+        <!-- Mic Pulse & Countdown Timer -->
+        <div class="py-2 flex flex-col justify-center items-center relative">
+          <div id="modalPulseRing" class="absolute w-28 h-28 rounded-full bg-indigo-500/20 animate-pulse-ring"></div>
+          <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-700 text-white shadow-soft flex items-center justify-center relative z-10">
+            <i id="modalMicIcon" class="fa-solid fa-microphone text-2xl"></i>
+          </div>
+
+          <div class="mt-3 z-10 inline-flex items-center space-x-1.5 px-3 py-1 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-full text-xs font-extrabold border border-red-200 dark:border-red-900/50">
+            <i class="fa-solid fa-stopwatch text-xs"></i>
+            <span>Mati dalam <span id="micCountdownText">12</span>s</span>
+          </div>
+        </div>
+
+        <!-- Soundwave Visualization -->
+        <div id="soundwaveContainer" class="flex items-center justify-center space-x-1.5 h-8">
+          <span class="w-1.5 bg-indigo-500 rounded-full bar-1"></span>
+          <span class="w-1.5 bg-appCoral rounded-full bar-2"></span>
+          <span class="w-1.5 bg-appYellow rounded-full bar-3"></span>
+          <span class="w-1.5 bg-appGreen rounded-full bar-4"></span>
+          <span class="w-1.5 bg-appBlue rounded-full bar-5"></span>
+        </div>
+
+        <!-- Dynamic Live Transcript Display -->
+        <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/60 min-h-[55px] flex items-center justify-center">
+          <p id="liveTranscriptText" class="text-xs italic text-slate-600 dark:text-slate-300 font-medium">Mendengarkan ucapan Anda...</p>
+        </div>
+
+        <!-- Variable Checklist Status (Tugas, Deadline, Urgensi) -->
+        <div class="grid grid-cols-3 gap-1.5 text-[10px] text-left">
+          <div id="chkTask" class="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-500 font-semibold flex items-center space-x-1">
+            <i class="fa-solid fa-circle-xmark text-slate-400" id="iconChkTask"></i>
+            <span class="truncate">1. Tugas</span>
+          </div>
+          <div id="chkDate" class="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-500 font-semibold flex items-center space-x-1">
+            <i class="fa-solid fa-circle-xmark text-slate-400" id="iconChkDate"></i>
+            <span class="truncate">2. Deadline</span>
+          </div>
+          <div id="chkUrgency" class="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 dark:text-slate-500 font-semibold flex items-center space-x-1">
+            <i class="fa-solid fa-circle-xmark text-slate-400" id="iconChkUrgency"></i>
+            <span class="truncate">3. Urgensi</span>
+          </div>
+        </div>
+
+        <!-- Warning Box for Missing Variables -->
+        <div id="voiceMissingWarning" class="hidden p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded-xl text-[11px] text-amber-700 dark:text-amber-300 font-medium text-left">
+          <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+          <span id="voiceMissingWarningText">Variable belum lengkap! Lengkapi data di bawah.</span>
+        </div>
+
+        <!-- TOMBOL RETRY MIC DAN SELESAI -->
+        <div class="flex space-x-2">
+          <button id="retryVoiceRecordBtn" class="hidden flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-soft transition-all items-center justify-center space-x-1">
+            <i class="fa-solid fa-microphone"></i>
+            <span>Coba Lagi</span>
+          </button>
+          <button id="stopVoiceRecordBtn" class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-soft transition-all">
+            Selesai & Proses
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Task Form Modal -->
+    <div id="taskModal" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-md hidden flex items-center justify-center p-6">
+      <div class="bg-white dark:bg-slate-900 rounded-4xl max-w-xs w-full p-6 shadow-2xl space-y-4 border border-slate-100 dark:border-slate-800">
+        
+        <div class="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h3 id="taskModalTitle" class="text-xs font-extrabold text-slate-800 dark:text-white uppercase tracking-wider">Tambah Pengingat</h3>
+          <button id="closeTaskModalBtn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i class="fa-solid fa-xmark text-base"></i>
+          </button>
+        </div>
+
+        <form id="taskForm" class="space-y-3">
+          <input type="hidden" id="editTaskId">
+
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-400 mb-1">1. Detail Tugas</label>
+            <input type="text" id="taskTitleInput" required placeholder="Misal: Gojek poi design" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-400 mb-1">2. Tanggal</label>
+              <input type="date" id="taskDateInput" required class="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white">
+            </div>
+            <div>
+              <label class="block text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-400 mb-1">Jam</label>
+              <input type="time" id="taskTimeInput" required class="w-full px-2.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-[10px] font-extrabold uppercase text-slate-400 dark:text-slate-400 mb-1">3. Urgensi</label>
+            <select id="taskUrgencySelect" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:ring-2 focus:ring-indigo-500 outline-none dark:text-white">
+              <option value="Sangat Mendesak">🚨 Sangat Mendesak</option>
+              <option value="Mendesak">🔥 Mendesak</option>
+              <option value="Normal">⚡ Normal</option>
+              <option value="Rendah">🌱 Rendah</option>
+            </select>
+          </div>
+
+          <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-soft transition-all mt-2">
+            Simpan Pengingat
+          </button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JavaScript Aplikasi -->
+  <script>
+    // State Aplikasi Utama
+    let tasks = JSON.parse(localStorage.getItem('VoiceMind_Tasks')) || [
+      { id: '1', title: 'Gojek poi design UI', date: '2026-09-28', time: '14:00', urgency: 'Sangat Mendesak', completed: false },
+      { id: '2', title: 'Meeting Evaluasi Bulanan', date: '2026-09-29', time: '10:00', urgency: 'Mendesak', completed: false },
+      { id: '3', title: 'Review Materi Pelajaran', date: '2026-09-30', time: '16:00', urgency: 'Normal', completed: true },
+      { id: '4', title: 'Pemeriksaan Laporan Keuangan', date: '2026-10-02', time: '09:00', urgency: 'Rendah', completed: false }
+    ];
+
+    let currentUserName = localStorage.getItem('VoiceMind_UserName') || 'Anna Lane';
+    let currentCategoryFilter = null;
+    let currentDateFilter = null;
+    let searchQuery = '';
+    
+    // Calendar Strip Navigation Offset
+    let weekOffset = 0;
+    let currentCalMonth = 8; // September (0-index: 8)
+    let currentCalYear = 2026;
+
+    // Speech Recognition API & Timer State
+    let recognition = null;
+    let isRecording = false;
+    let countdownInterval = null;
+    let micTimeLeft = 12;
+    let finalSpokenTranscript = '';
+
+    // Inisialisasi DOM Elements
+    document.addEventListener('DOMContentLoaded', () => {
+      initClock();
+      initTheme();
+      initSpeechRecognition();
+      renderAll();
+      setupEventListeners();
+    });
+
+    // Realtime Clock Status Bar
+    function initClock() {
+      const updateClock = () => {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const timeStr = `${hours}:${minutes}`;
+        const el = document.getElementById('currentTimeDisplay');
+        if(el) el.textContent = timeStr;
+      };
+      updateClock();
+      setInterval(updateClock, 30000);
+    }
+
+    // Theme Management
+    function initTheme() {
+      const isDark = document.documentElement.classList.contains('dark');
+      if(isDark) {
+        document.body.classList.add('dark');
+      }
+    }
+
+    document.getElementById('themeToggleBtn').addEventListener('click', () => {
+      document.documentElement.classList.toggle('dark');
+      document.body.classList.toggle('dark');
+    });
+
+    // Render Utama Aplikasi
+    function renderAll() {
+      document.getElementById('userNameText').textContent = `${currentUserName}! 👋`;
+      document.getElementById('editUserNameInput').value = currentUserName;
+
+      renderCategoryCounts();
+      renderCalendarStrip();
+      renderTaskList();
+      renderReports();
+    }
+
+    // Hitung & Render Ringkasan Urgensi
+    function renderCategoryCounts() {
+      const counts = { 'Sangat Mendesak': 0, 'Mendesak': 0, 'Normal': 0, 'Rendah': 0 };
+      tasks.forEach(t => {
+        if(counts[t.urgency] !== undefined) counts[t.urgency]++;
+      });
+
+      document.getElementById('countSangatMendesak').textContent = `${counts['Sangat Mendesak']} Tugas`;
+      document.getElementById('countMendesak').textContent = `${counts['Mendesak']} Tugas`;
+      document.getElementById('countNormal').textContent = `${counts['Normal']} Tugas`;
+      document.getElementById('countRendah').textContent = `${counts['Rendah']} Tugas`;
+    }
+
+    // Render Strip Kalender Mingguan (Dashboard)
+    function renderCalendarStrip() {
+      const container = document.getElementById('calendarDaysStrip');
+      container.innerHTML = '';
+
+      const today = new Date();
+      let startDate = new Date(today);
+      startDate.setDate(today.getDate() + (weekOffset * 7));
+
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      document.getElementById('calendarMonthTitle').textContent = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+
+      for(let i=0; i<7; i++) {
+        let d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+
+        const yearStr = d.getFullYear();
+        const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+        const dayStr = String(d.getDate()).padStart(2, '0');
+        const dateFormatted = `${yearStr}-${monthStr}-${dayStr}`;
+
+        const dayNameShort = d.toLocaleDateString('id-ID', { weekday: 'short' });
+        const dayNum = d.getDate();
+
+        const hasTask = tasks.some(t => t.date === dateFormatted);
+        const isSelected = currentDateFilter === dateFormatted;
+
+        const btn = document.createElement('button');
+        btn.className = `p-2 rounded-2xl flex flex-col items-center justify-center transition-all ${
+          isSelected 
+            ? 'bg-indigo-600 text-white shadow-soft scale-105' 
+            : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+        }`;
+        
+        btn.innerHTML = `
+          <span class="text-[9px] uppercase font-bold opacity-75">${dayNameShort}</span>
+          <span class="text-xs font-extrabold mt-0.5">${dayNum}</span>
+          <span class="w-1.5 h-1.5 rounded-full mt-1 ${hasTask ? (isSelected ? 'bg-white' : 'bg-indigo-500') : 'bg-transparent'}"></span>
+        `;
+
+        btn.addEventListener('click', () => {
+          if (currentDateFilter === dateFormatted) {
+            currentDateFilter = null;
+          } else {
+            currentDateFilter = dateFormatted;
+          }
+          renderTaskList();
+          renderCalendarStrip();
+        });
+
+        container.appendChild(btn);
+      }
+    }
+
+    // Render Daftar Tugas & Pengingat
+    function renderTaskList() {
+      const container = document.getElementById('taskListContainer');
+      const emptyState = document.getElementById('emptyTaskState');
+      const totalCountEl = document.getElementById('totalTaskCount');
+
+      container.innerHTML = '';
+
+      let filtered = tasks.filter(t => {
+        if(searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const matchTitle = t.title.toLowerCase().includes(q);
+          const matchDate = t.date.includes(q);
+          if(!matchTitle && !matchDate) return false;
+        }
+        if(currentCategoryFilter && t.urgency !== currentCategoryFilter) return false;
+        if(currentDateFilter && t.date !== currentDateFilter) return false;
+        return true;
+      });
+
+      totalCountEl.textContent = `${filtered.length} Tugas`;
+
+      if(filtered.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+
+      filtered.forEach(t => {
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-3xl bg-white dark:bg-appCardDark shadow-card dark:shadow-card-dark border border-slate-100 dark:border-slate-800 flex items-center justify-between transition-all hover:scale-[1.01] ${t.completed ? 'opacity-60' : ''}`;
+
+        let urgencyBadgeColor = 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400';
+        if(t.urgency === 'Sangat Mendesak') urgencyBadgeColor = 'bg-red-500/10 text-red-600 dark:text-red-400';
+        else if(t.urgency === 'Mendesak') urgencyBadgeColor = 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
+        else if(t.urgency === 'Rendah') urgencyBadgeColor = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
+
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 flex-1 min-w-0 pr-2">
+            <button class="toggle-task-btn w-6 h-6 rounded-full border-2 ${t.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600'} flex items-center justify-center shrink-0 transition-colors" data-id="${t.id}">
+              ${t.completed ? '<i class="fa-solid fa-check text-[10px]"></i>' : ''}
+            </button>
+            <div class="min-w-0 flex-1">
+              <h4 class="text-xs font-bold text-slate-800 dark:text-white truncate ${t.completed ? 'line-through' : ''}">${t.title}</h4>
+              <div class="flex items-center space-x-2 mt-1 text-[10px] text-slate-400">
+                <span><i class="fa-regular fa-calendar mr-1"></i>${t.date}</span>
+                <span><i class="fa-regular fa-clock mr-1"></i>${t.time}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 shrink-0">
+            <span class="text-[9px] font-extrabold px-2.5 py-1 rounded-full ${urgencyBadgeColor}">${t.urgency}</span>
+            <button class="delete-task-btn text-slate-300 hover:text-red-500 dark:hover:text-red-400 p-1 transition-colors" data-id="${t.id}" title="Hapus Tugas">
+              <i class="fa-solid fa-trash-can text-xs"></i>
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      container.querySelectorAll('.toggle-task-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          const taskObj = tasks.find(x => x.id === id);
+          if(taskObj) {
+            taskObj.completed = !taskObj.completed;
+            saveAndRefresh();
+          }
+        });
+      });
+
+      container.querySelectorAll('.delete-task-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          tasks = tasks.filter(x => x.id !== id);
+          saveAndRefresh();
+        });
+      });
+    }
+
+    // Laporan Mingguan & Bulanan
+    function renderReports() {
+      const total = tasks.length;
+      const completed = tasks.filter(t => t.completed).length;
+      const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      document.getElementById('weeklyCompletionRate').textContent = `${rate}% Selesai`;
+      document.getElementById('weeklyProgressBar').style.width = `${rate}%`;
+      document.getElementById('weeklyTotalText').textContent = `Total: ${total} Tugas`;
+      document.getElementById('weeklyDoneText').textContent = `Selesai: ${completed}`;
+
+      let sm = 0, m = 0, n = 0, r = 0;
+      tasks.forEach(t => {
+        if(t.urgency === 'Sangat Mendesak') sm++;
+        else if(t.urgency === 'Mendesak') m++;
+        else if(t.urgency === 'Normal') n++;
+        else if(t.urgency === 'Rendah') r++;
+      });
+
+      document.getElementById('repSangatMendesak').textContent = sm;
+      document.getElementById('repMendesak').textContent = m;
+      document.getElementById('repNormal').textContent = n;
+      document.getElementById('repRendah').textContent = r;
+    }
+
+    function saveAndRefresh() {
+      localStorage.setItem('VoiceMind_Tasks', JSON.stringify(tasks));
+      renderAll();
+    }
+
+    // ==========================================
+    // SPEECH RECOGNITION & PARSING ENGINE (FIXED)
+    // ==========================================
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        console.warn("Speech Recognition API tidak didukung browser ini.");
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'id-ID';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        let final = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            final += event.results[i][0].transcript;
+          } else {
+            interim += event.results[i][0].transcript;
+          }
         }
 
-        function startVoiceInput() {
-            closeModal('validation-modal');
-            document.getElementById('recording-modal').style.display = 'flex';
-            document.getElementById('transcript').innerText = "Mendengarkan...";
-            document.getElementById('mic-btn').classList.add('recording');
-            
-            timeLeft = 12;
-            document.getElementById('countdown-timer').innerText = timeLeft;
-            
-            clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                document.getElementById('countdown-timer').innerText = timeLeft;
-                if(timeLeft <= 0) {
-                    stopVoiceInput();
-                }
-            }, 1000);
+        const fullText = (final + ' ' + interim).trim();
+        finalSpokenTranscript = fullText;
+        
+        const transcriptEl = document.getElementById('liveTranscriptText');
+        if(transcriptEl) transcriptEl.textContent = fullText || "Mendengarkan ucapan Anda...";
 
-            recognition.start();
-            isRecording = true;
-            
-            recognition.onresult = (event) => {
-                let current = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    current += event.results[i][0].transcript;
-                }
-                document.getElementById('transcript').innerText = current;
-            };
+        validateLiveTranscriptVariables(fullText);
+      };
+
+      recognition.onerror = (e) => {
+        console.error("Speech Recognition Error:", e.error);
+      };
+
+      recognition.onend = () => {
+        if (isRecording) {
+          try { recognition.start(); } catch(err) {}
         }
+      };
+    }
 
-        function stopVoiceInput() {
-            if (isRecording) {
-                recognition.stop();
-                isRecording = false;
-                clearInterval(countdownInterval);
-                document.getElementById('recording-modal').style.display = 'none';
-                document.getElementById('mic-btn').classList.remove('recording');
-                
-                let finalTranscript = document.getElementById('transcript').innerText;
-                processTranscript(finalTranscript);
-            }
+    function openVoiceModal() {
+      const modal = document.getElementById('voiceModal');
+      const card = document.getElementById('voiceModalCard');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        card.classList.remove('scale-90', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+      }, 10);
+
+      isRecording = true;
+      finalSpokenTranscript = '';
+      document.getElementById('liveTranscriptText').textContent = "Mendengarkan ucapan Anda...";
+      document.getElementById('voiceMissingWarning').classList.add('hidden');
+      document.getElementById('retryVoiceRecordBtn').classList.add('hidden');
+      
+      resetChecklistUI();
+
+      micTimeLeft = 12;
+      document.getElementById('micCountdownText').textContent = micTimeLeft;
+
+      if(recognition) {
+        try { recognition.start(); } catch(e) {}
+      }
+
+      clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        micTimeLeft--;
+        const countEl = document.getElementById('micCountdownText');
+        if(countEl) countEl.textContent = micTimeLeft;
+
+        if (micTimeLeft <= 0) {
+          stopVoiceRecordingSession();
         }
+      }, 1000);
+    }
 
-        function processTranscript(text) {
-            text = text.toLowerCase();
-            
-            // 1. Ekstrak Task (sebelum kata "deadline" atau "tanggal")
-            let title = "";
-            let matchTask = text.match(/(.*?)(?:deadline|tanggal|pada)/);
-            if (matchTask && matchTask[1].trim().length > 0) {
-                title = matchTask[1].trim();
-            } else {
-                title = text; // Fallback jika tidak ada pemisah
-            }
+    function closeVoiceModal() {
+      isRecording = false;
+      clearInterval(countdownInterval);
+      if(recognition) {
+        try { recognition.stop(); } catch(e) {}
+      }
 
-            // 2. Ekstrak Urgensi
-            let urgency = "";
-            if (text.includes("sangat mendesak")) urgency = "Sangat Mendesak";
-            else if (text.includes("mendesak")) urgency = "Mendesak";
-            else if (text.includes("rendah")) urgency = "Rendah";
-            else if (text.includes("normal")) urgency = "Normal";
+      const modal = document.getElementById('voiceModal');
+      const card = document.getElementById('voiceModalCard');
+      card.classList.remove('scale-100', 'opacity-100');
+      card.classList.add('scale-90', 'opacity-0');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
 
-            // 3. Ekstrak Tanggal dengan Parser Akurat Bahasa Indonesia
-            let deadlineStr = "";
-            const months = ["januari", "februari", "maret", "april", "mei", "juni", "juli", "agustus", "september", "oktober", "november", "desember"];
-            let foundMonthIndex = -1;
-            let foundDate = -1;
+    function stopVoiceRecordingSession() {
+      isRecording = false;
+      clearInterval(countdownInterval);
+      if(recognition) {
+        try { recognition.stop(); } catch(e) {}
+      }
 
-            // Cari bulan eksplisit
-            for (let i = 0; i < months.length; i++) {
-                if (text.includes(months[i])) {
-                    foundMonthIndex = i;
-                    break;
-                }
-            }
+      processVoiceTranscript(finalSpokenTranscript);
+    }
 
-            // Cari angka tanggal (contoh: "tanggal 28" atau "2 agustus")
-            let matchDate = text.match(/tanggal\s+(\d+)|(\d+)\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|bulan)/);
-            if (matchDate) {
-                foundDate = parseInt(matchDate[1] || matchDate[2]);
-            }
+    function resetChecklistUI() {
+      ['Task', 'Date', 'Urgency'].forEach(v => {
+        const el = document.getElementById(`chk${v}`);
+        const icon = document.getElementById(`iconChk${v}`);
+        el.className = "p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 font-semibold flex items-center space-x-1";
+        icon.className = "fa-solid fa-circle-xmark text-slate-400";
+      });
+    }
 
-            let today = new Date();
-            let targetDate = new Date();
+    function validateLiveTranscriptVariables(text) {
+      const lower = text.toLowerCase();
+      
+      const hasTask = lower.length > 3;
+      updateCheckItem('Task', hasTask);
 
-            if (foundDate !== -1 && foundMonthIndex !== -1) {
-                // Bulan dan Tanggal spesifik terdeteksi
-                targetDate.setMonth(foundMonthIndex);
-                targetDate.setDate(foundDate);
-                // Jika sudah lewat di tahun ini, lompat ke tahun depan
-                if (targetDate < today && targetDate.getMonth() < today.getMonth()) {
-                    targetDate.setFullYear(today.getFullYear() + 1);
-                }
-                deadlineStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
-            } 
-            else if (foundDate !== -1 && text.includes("bulan ini")) {
-                deadlineStr = `${foundDate} ${months[today.getMonth()]} ${today.getFullYear()}`;
-            }
-            else if (text.includes("besok")) {
-                targetDate.setDate(today.getDate() + 1);
-                deadlineStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
-            }
-            else if (text.includes("lusa")) {
-                targetDate.setDate(today.getDate() + 2);
-                deadlineStr = `${targetDate.getDate()} ${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
-            }
+      const hasDate = /tanggal|besok|lusa|\d{1,2}\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)/i.test(lower);
+      updateCheckItem('Date', hasDate);
 
-            // VALIDASI 3 VARIABEL
-            let missing = [];
-            if (!title || title === text) missing.push("Task/Tugas");
-            if (!deadlineStr) missing.push("Tanggal Deadline");
-            if (!urgency) missing.push("Urgensi (Mendesak/Normal/Rendah)");
+      const hasUrgency = /sangat mendesak|mendesak|normal|rendah/.test(lower);
+      updateCheckItem('Urgency', hasUrgency);
+    }
 
-            if (missing.length > 0) {
-                document.getElementById('validation-msg').innerHTML = `Sistem tidak mendeteksi: <b>${missing.join(', ')}</b>.<br><br><i>Terdengar: "${text}"</i>`;
-                document.getElementById('validation-modal').style.display = 'flex';
-            } else {
-                // Simpan jika semua lengkap
-                tasks.push({ title: title, deadline: deadlineStr, urgency: urgency });
-                localStorage.setItem('tasks', JSON.stringify(tasks));
-                renderTasks();
-                alert('Tugas Berhasil Disimpan!');
-            }
+    function updateCheckItem(name, isValid) {
+      const el = document.getElementById(`chk${name}`);
+      const icon = document.getElementById(`iconChk${name}`);
+      if(isValid) {
+        el.className = "p-1.5 bg-emerald-500/10 dark:bg-emerald-950/40 rounded-xl text-emerald-600 dark:text-emerald-400 font-bold flex items-center space-x-1";
+        icon.className = "fa-solid fa-circle-check text-emerald-500";
+      } else {
+        el.className = "p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-400 font-semibold flex items-center space-x-1";
+        icon.className = "fa-solid fa-circle-xmark text-slate-400";
+      }
+    }
+
+    function processVoiceTranscript(text) {
+      const lower = text.toLowerCase();
+
+      let urgency = 'Normal';
+      if (lower.includes('sangat mendesak')) urgency = 'Sangat Mendesak';
+      else if (lower.includes('mendesak')) urgency = 'Mendesak';
+      else if (lower.includes('rendah')) urgency = 'Rendah';
+      else if (lower.includes('normal')) urgency = 'Normal';
+
+      let parsedDate = parseIndonesianDate(lower);
+
+      let title = text;
+      const splitKeywords = ['deadline', 'tanggal', 'urgensi', 'pada'];
+      for(let kw of splitKeywords) {
+        const idx = lower.indexOf(kw);
+        if(idx > 0) {
+          title = text.substring(0, idx).trim();
+          break;
         }
+      }
+      title = title.replace(/^ingatkan\s+saya\s+(untuk\s+)?/i, '').trim();
+      if(!title) title = "Tugas Suara Baru";
 
-        function closeModal(id) {
-            document.getElementById(id).style.display = 'none';
+      const isTaskValid = title.length > 2;
+      const isDateValid = parsedDate !== null;
+
+      if (!isTaskValid || !isDateValid) {
+        let missingList = [];
+        if(!isTaskValid) missingList.push("Nama Tugas");
+        if(!isDateValid) missingList.push("Tanggal Deadline");
+
+        const warningBox = document.getElementById('voiceMissingWarning');
+        const warningText = document.getElementById('voiceMissingWarningText');
+        const retryBtn = document.getElementById('retryVoiceRecordBtn');
+
+        warningText.textContent = `Kurang variabel: ${missingList.join(', ')}. Format: (Tugas - Deadline - Urgensi).`;
+        warningBox.classList.remove('hidden');
+        retryBtn.classList.remove('hidden');
+        return;
+      }
+
+      const newId = String(Date.now());
+      const timeStr = '09:00';
+
+      tasks.unshift({
+        id: newId,
+        title: title,
+        date: parsedDate,
+        time: timeStr,
+        urgency: urgency,
+        completed: false
+      });
+
+      saveAndRefresh();
+      closeVoiceModal();
+    }
+
+    // Fixed Robust Date Parser
+    function parseIndonesianDate(text) {
+      const today = new Date();
+      let target = new Date(today);
+
+      if (text.includes('besok')) {
+        target.setDate(today.getDate() + 1);
+        return formatDateObj(target);
+      }
+      if (text.includes('lusa')) {
+        target.setDate(today.getDate() + 2);
+        return formatDateObj(target);
+      }
+
+      const monthMap = {
+        'januari': 0, 'februari': 1, 'maret': 2, 'april': 3,
+        'mei': 4, 'juni': 5, 'juli': 6, 'agustus': 7,
+        'september': 8, 'oktober': 9, 'november': 10, 'desember': 11
+      };
+
+      let foundMonth = -1;
+      let foundDay = -1;
+
+      // Match exact month word first to prevent incorrect substring matches (e.g. oktober vs agustus)
+      const words = text.split(/\s+/);
+      for (let w of words) {
+        if (monthMap[w] !== undefined) {
+          foundMonth = monthMap[w];
+          break;
         }
-
-        function openSettings() {
-            document.getElementById('settings-modal').style.display = 'flex';
+      }
+      if (foundMonth === -1) {
+        for (let mName in monthMap) {
+          if (text.includes(mName)) {
+            foundMonth = monthMap[mName];
+            break;
+          }
         }
+      }
 
-        function saveSettings() {
-            let name = document.getElementById('username-input').value;
-            if(name) {
-                document.getElementById('greeting').innerText = `Halo, ${name}!`;
-            }
-            closeModal('settings-modal');
+      const matchNum = text.match(/(?:tanggal\s*)?(\d{1,2})/);
+      if (matchNum) {
+        foundDay = parseInt(matchNum[1]);
+      }
+
+      if (foundDay !== -1 && foundMonth !== -1) {
+        let year = today.getFullYear();
+        target.setFullYear(year, foundMonth, foundDay);
+        if (target < today && foundMonth < today.getMonth()) {
+          target.setFullYear(year + 1);
         }
+        return formatDateObj(target);
+      }
 
-        // Init
-        renderCalendar();
-        renderTasks();
-    </script>
+      if (foundDay !== -1 && text.includes('bulan ini')) {
+        target.setDate(foundDay);
+        return formatDateObj(target);
+      }
+
+      return null;
+    }
+
+    function formatDateObj(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+
+    // ==========================================
+    // UI EVENT LISTENERS & MODALS SETUP
+    // ==========================================
+    function setupEventListeners() {
+
+      document.getElementById('mainVoiceFab').addEventListener('click', openVoiceModal);
+      document.getElementById('closeVoiceModalBtn').addEventListener('click', closeVoiceModal);
+      document.getElementById('stopVoiceRecordBtn').addEventListener('click', stopVoiceRecordingSession);
+
+      document.getElementById('retryVoiceRecordBtn').addEventListener('click', () => {
+        document.getElementById('voiceMissingWarning').classList.add('hidden');
+        document.getElementById('retryVoiceRecordBtn').classList.add('hidden');
+        openVoiceModal();
+      });
+
+      const searchContainer = document.getElementById('searchContainer');
+      const searchInput = document.getElementById('searchInput');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+      document.getElementById('searchToggleBtn').addEventListener('click', () => {
+        searchContainer.classList.toggle('hidden');
+        if(!searchContainer.classList.contains('hidden')) {
+          searchInput.focus();
+        }
+      });
+
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if(searchQuery) clearSearchBtn.classList.remove('hidden');
+        else clearSearchBtn.classList.add('hidden');
+        renderTaskList();
+      });
+
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.add('hidden');
+        renderTaskList();
+      });
+
+      document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          const urg = e.currentTarget.getAttribute('data-urgency');
+          if(currentCategoryFilter === urg) {
+            currentCategoryFilter = null;
+          } else {
+            currentCategoryFilter = urg;
+          }
+          renderTaskList();
+        });
+      });
+
+      document.getElementById('resetCategoryFilter').addEventListener('click', () => {
+        currentCategoryFilter = null;
+        currentDateFilter = null;
+        renderTaskList();
+        renderCalendarStrip();
+      });
+
+      document.getElementById('prevWeekBtn').addEventListener('click', () => {
+        weekOffset--;
+        renderCalendarStrip();
+      });
+      document.getElementById('nextWeekBtn').addEventListener('click', () => {
+        weekOffset++;
+        renderCalendarStrip();
+      });
+
+      const fullCalModal = document.getElementById('fullCalendarModal');
+      document.getElementById('openFullCalendarBtn').addEventListener('click', () => openFullCalendarModal());
+      document.getElementById('navCalendarBtn').addEventListener('click', () => openFullCalendarModal());
+      document.getElementById('closeFullCalendarBtn').addEventListener('click', () => fullCalModal.classList.add('hidden'));
+
+      const taskModal = document.getElementById('taskModal');
+      const openTaskForm = () => {
+        document.getElementById('taskForm').reset();
+        document.getElementById('taskDateInput').value = formatDateObj(new Date());
+        document.getElementById('taskTimeInput').value = '10:00';
+        taskModal.classList.remove('hidden');
+      };
+      document.getElementById('topAddTaskBtn').addEventListener('click', openTaskForm);
+      document.getElementById('navTasksBtn').addEventListener('click', openTaskForm);
+      document.getElementById('closeTaskModalBtn').addEventListener('click', () => taskModal.classList.add('hidden'));
+
+      document.getElementById('taskForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('taskTitleInput').value;
+        const date = document.getElementById('taskDateInput').value;
+        const time = document.getElementById('taskTimeInput').value;
+        const urgency = document.getElementById('taskUrgencySelect').value;
+
+        tasks.unshift({
+          id: String(Date.now()),
+          title: title,
+          date: date,
+          time: time,
+          urgency: urgency,
+          completed: false
+        });
+
+        saveAndRefresh();
+        taskModal.classList.add('hidden');
+      });
+
+      const settingsModal = document.getElementById('settingsModal');
+      const openSettingsModal = () => settingsModal.classList.remove('hidden');
+      document.getElementById('topSettingsBtn').addEventListener('click', openSettingsModal);
+      document.getElementById('navSettingsBtn').addEventListener('click', openSettingsModal);
+      document.getElementById('closeSettingsModalBtn').addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+      const tabSettingsBtn = document.getElementById('tabSettingsBtn');
+      const tabReportsBtn = document.getElementById('tabReportsBtn');
+      const settingsSection = document.getElementById('settingsSection');
+      const reportsSection = document.getElementById('reportsSection');
+
+      tabSettingsBtn.addEventListener('click', () => {
+        tabSettingsBtn.className = "py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm";
+        tabReportsBtn.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white";
+        settingsSection.classList.remove('hidden');
+        reportsSection.classList.add('hidden');
+      });
+
+      tabReportsBtn.addEventListener('click', () => {
+        tabReportsBtn.className = "py-1.5 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm";
+        tabSettingsBtn.className = "py-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white";
+        reportsSection.classList.remove('hidden');
+        settingsSection.classList.add('hidden');
+        renderReports();
+      });
+
+      document.getElementById('saveUserNameBtn').addEventListener('click', () => {
+        const val = document.getElementById('editUserNameInput').value.trim();
+        if(val) {
+          currentUserName = val;
+          localStorage.setItem('VoiceMind_UserName', currentUserName);
+          renderAll();
+          settingsModal.classList.add('hidden');
+        }
+      });
+
+      document.querySelectorAll('.color-preset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const accentColor = e.currentTarget.getAttribute('data-color');
+          const accentDark = e.currentTarget.getAttribute('data-dark');
+          document.documentElement.style.setProperty('--brand-accent', accentColor);
+          document.documentElement.style.setProperty('--brand-accent-dark', accentDark);
+
+          document.querySelectorAll('.color-preset-btn').forEach(b => b.classList.remove('ring-2', 'ring-offset-2', 'ring-indigo-500'));
+          e.currentTarget.classList.add('ring-2', 'ring-offset-2', 'ring-indigo-500');
+        });
+      });
+    }
+
+    function openFullCalendarModal() {
+      const modal = document.getElementById('fullCalendarModal');
+      modal.classList.remove('hidden');
+      renderFullCalendarGrid();
+    }
+
+    function renderFullCalendarGrid() {
+      const grid = document.getElementById('fullCalGrid');
+      const monthYearTitle = document.getElementById('fullCalMonthYear');
+      grid.innerHTML = '';
+
+      const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      monthYearTitle.textContent = `${monthNames[currentCalMonth]} ${currentCalYear}`;
+
+      const firstDayIndex = new Date(currentCalYear, currentCalMonth, 1).getDay();
+      const totalDays = new Date(currentCalYear, currentCalMonth + 1, 0).getDate();
+
+      for(let i=0; i<firstDayIndex; i++) {
+        const emptyDiv = document.createElement('div');
+        grid.appendChild(emptyDiv);
+      }
+
+      for(let day=1; day<=totalDays; day++) {
+        const mStr = String(currentCalMonth + 1).padStart(2, '0');
+        const dStr = String(day).padStart(2, '0');
+        const dateFormatted = `${currentCalYear}-${mStr}-${dStr}`;
+
+        const hasTask = tasks.some(t => t.date === dateFormatted);
+        const isSelected = currentDateFilter === dateFormatted;
+
+        const btn = document.createElement('button');
+        btn.className = `p-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center ${
+          isSelected 
+            ? 'bg-indigo-600 text-white shadow-soft' 
+            : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+        }`;
+        btn.innerHTML = `
+          <span>${day}</span>
+          <span class="w-1 h-1 rounded-full mt-0.5 ${hasTask ? (isSelected ? 'bg-white' : 'bg-indigo-500') : 'bg-transparent'}"></span>
+        `;
+
+        btn.addEventListener('click', () => {
+          currentDateFilter = dateFormatted;
+          document.getElementById('fullCalendarModal').classList.add('hidden');
+          renderTaskList();
+          renderCalendarStrip();
+          document.getElementById('fullCalSelectedText').textContent = `Filter: ${dateFormatted}`;
+        });
+
+        grid.appendChild(btn);
+      }
+    }
+
+    document.getElementById('fullCalPrevMonth').addEventListener('click', () => {
+      currentCalMonth--;
+      if(currentCalMonth < 0) {
+        currentCalMonth = 11;
+        currentCalYear--;
+      }
+      renderFullCalendarGrid();
+    });
+
+    document.getElementById('fullCalNextMonth').addEventListener('click', () => {
+      currentCalMonth++;
+      if(currentCalMonth > 11) {
+        currentCalMonth = 0;
+        currentCalYear++;
+      }
+      renderFullCalendarGrid();
+    });
+
+    document.getElementById('clearCalFilterBtn').addEventListener('click', () => {
+      currentDateFilter = null;
+      renderTaskList();
+      renderCalendarStrip();
+      document.getElementById('fullCalSelectedText').textContent = 'Menampilkan semua tugas';
+    });
+  </script>
 </body>
 </html>
